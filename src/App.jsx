@@ -3,37 +3,30 @@ import axios from 'axios';
 import logo from './assets/tmdb.svg';
 import { searchMovie, getMovieDetails } from './API';
 
-
 function App() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [movieId, setMovieId] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = async (e) => {
-    if (e.key === 'Enter') {
-      setLoading(true);
-      const results = await searchMovie(searchTerm);
-      if (results.length > 0) {
-        setMovieId(results[0].id);
-      } else {
-        setMovieId(null);
-        setSelectedMovie(null);
-        setLoading(false);
-      }
+  const handleInputChange = async (e) => {
+    setSearchTerm(e.target.value);
+    if (e.target.value.length > 0) {
+      const results = await searchMovie(e.target.value);
+      setSuggestions(results);
+    } else {
+      setSuggestions([]);
     }
   };
 
-  useEffect(() => {
-    const fetchMovieDetails = async () => {
-      if (movieId) {
-        const movieDetails = await getMovieDetails(movieId);
-        setSelectedMovie(movieDetails);
-        setLoading(false);
-      }
-    };
-    fetchMovieDetails();
-  }, [movieId]);
+  const handleSuggestionClick = async (movieId) => {
+    setLoading(true);
+    const movieDetails = await getMovieDetails(movieId);
+    setSelectedMovie(movieDetails);
+    setLoading(false);
+    setSuggestions([]);
+    setSearchTerm(''); // Clear the input after selection
+  };
 
   return (
     <div
@@ -47,15 +40,29 @@ function App() {
 
       <div className="relative w-full h-full flex flex-col items-center justify-center px-6 text-white font-lato space-y-8">
         <div className="flex items-center justify-between w-full max-w-4xl">
-          <img src={logo} alt="TMDB" className="w-32 opacity-90" />
-          <input
-            type="text"
-            placeholder="Search for movies..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={handleSearch}
-            className="w-full max-w-xs p-3 rounded-lg bg-gray-800 bg-opacity-60 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition duration-300"
-          />
+          <a href="#"><img src={logo} alt="TMDB" className="w-32 opacity-90" /></a>
+          <div className="relative w-full max-w-xs">
+            <input
+              type="text"
+              placeholder="Search for movies..."
+              value={searchTerm}
+              onChange={handleInputChange}
+              className="w-full p-3 rounded-lg bg-gray-800 bg-opacity-60 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition duration-300"
+            />
+            {suggestions.length > 0 && (
+              <ul className="absolute left-0 right-0 mt-2 bg-gray-800 bg-opacity-90 rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
+                {suggestions.map((movie) => (
+                  <li
+                    key={movie.id}
+                    onClick={() => handleSuggestionClick(movie.id)}
+                    className="p-2 cursor-pointer hover:bg-gray-700"
+                  >
+                    {movie.title}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -102,7 +109,7 @@ function App() {
             </div>
           </div>
         ) : (
-          <p className="text-2xl">No movie found. Please try a different search term.</p>
+          <p className="text-2xl">No movie selected. Please try searching for a movie.</p>
         )}
 
         <footer className="absolute bottom-0 left-0 w-full py-4 text-center text-sm bg-black bg-opacity-60">
