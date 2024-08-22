@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import logo from './assets/tmdb.svg';
+import { searchMovie, getMovieDetails } from './API';
+
 
 function App() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -8,44 +10,29 @@ function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     if (e.key === 'Enter') {
       setLoading(true);
-      axios
-        .get(`https://api.themoviedb.org/3/search/movie?query=${searchTerm}&api_key=cfe422613b250f702980a3bbf9e90716`)
-        .then((response) => {
-          if (response.data.results.length > 0) {
-            const foundMovie = response.data.results[0];
-            setMovieId(foundMovie.id);
-          } else {
-            setMovieId(null);
-            setSelectedMovie(null);
-            setLoading(false);
-          }
-        })
-        .catch((error) => {
-          console.log(error);
-          setMovieId(null);
-          setSelectedMovie(null);
-          setLoading(false);
-        });
+      const results = await searchMovie(searchTerm);
+      if (results.length > 0) {
+        setMovieId(results[0].id);
+      } else {
+        setMovieId(null);
+        setSelectedMovie(null);
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    if (movieId) {
-      axios
-        .get(`https://api.themoviedb.org/3/movie/${movieId}?&api_key=cfe422613b250f702980a3bbf9e90716`)
-        .then((response) => {
-          setSelectedMovie(response.data);
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.log(error);
-          setSelectedMovie(null);
-          setLoading(false);
-        });
-    }
+    const fetchMovieDetails = async () => {
+      if (movieId) {
+        const movieDetails = await getMovieDetails(movieId);
+        setSelectedMovie(movieDetails);
+        setLoading(false);
+      }
+    };
+    fetchMovieDetails();
   }, [movieId]);
 
   return (
